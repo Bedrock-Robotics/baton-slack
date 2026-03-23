@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -194,10 +195,9 @@ func (c *channelResourceType) Grant(
 	_, err := c.client.InviteUsersToConversationContext(ctx, channelID, userID)
 	if err != nil {
 		// already_in_channel means the user is already a member - treat as success.
-		if slackErr, ok := err.(slack.SlackErrorResponse); ok {
-			if slackErr.Err == "already_in_channel" {
-				return nil, nil
-			}
+		var slackErr slack.SlackErrorResponse
+		if errors.As(err, &slackErr) && slackErr.Err == "already_in_channel" {
+			return nil, nil
 		}
 		return nil, fmt.Errorf("inviting user to channel: %w", err)
 	}
@@ -229,12 +229,11 @@ func (c *channelResourceType) Revoke(
 	err := c.client.KickUserFromConversationContext(ctx, channelID, userID)
 	if err != nil {
 		// not_in_channel means the user is already not a member - treat as already revoked.
-		if slackErr, ok := err.(slack.SlackErrorResponse); ok {
-			if slackErr.Err == "not_in_channel" {
-				outputAnnotations := annotations.New()
-				outputAnnotations.Append(&v2.GrantAlreadyRevoked{})
-				return outputAnnotations, nil
-			}
+		var slackErr slack.SlackErrorResponse
+		if errors.As(err, &slackErr) && slackErr.Err == "not_in_channel" {
+			outputAnnotations := annotations.New()
+			outputAnnotations.Append(&v2.GrantAlreadyRevoked{})
+			return outputAnnotations, nil
 		}
 		return nil, fmt.Errorf("removing user from channel: %w", err)
 	}
