@@ -34,7 +34,7 @@ const govSlackApiUrl = "https://api.slack-gov.com/api/"
 func (c *Slack) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error) {
 	return &v2.ConnectorMetadata{
 		DisplayName: "Slack",
-		Description: "Connector syncing users, workspaces, user groups and workspace roles from Slack to Baton.",
+		Description: "Connector syncing users, workspaces, user groups, workspace roles and channels from Slack to Baton.",
 		AccountCreationSchema: &v2.ConnectorAccountCreationSchema{
 			FieldMap: map[string]*v2.ConnectorAccountCreationSchema_Field{
 				"channel_ids": {
@@ -174,5 +174,6 @@ func (s *Slack) ResourceSyncers(ctx context.Context) []connectorbuilder.Resource
 		userGroupBuilder(s.client, s.businessPlusClient),
 		groupBuilder(s.businessPlusClient, s.govEnv),
 		workspaceRoleBuilder(s.businessPlusClient),
+		channelBuilder(s.client),
 	}
 }

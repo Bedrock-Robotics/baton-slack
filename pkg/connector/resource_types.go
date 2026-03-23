@@ -78,6 +78,23 @@ var (
 		),
 	}
 
+	resourceTypeChannel = &v2.ResourceType{
+		Id:          "channel",
+		DisplayName: "Channel",
+		Traits: []v2.ResourceType_Trait{
+			v2.ResourceType_TRAIT_GROUP,
+		},
+		Annotations: annotations.New(
+			capabilityPermissions(
+				// Bot Token Scopes
+				"channels:read",
+				"channels:join",
+				"groups:read",
+				"channels:manage",
+			),
+		),
+	}
+
 	resourceTypeWorkspaceRole = &v2.ResourceType{
 		Id:          "workspaceRole",
 		DisplayName: "Workspace Role",
