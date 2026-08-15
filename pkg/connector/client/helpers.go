@@ -102,6 +102,16 @@ func WrapError(err error, contextMsg string, annos *annotations.Annotations) err
 	return uhttp.WrapErrors(codes.Unknown, contextMsg, err)
 }
 
+// SlackErrorCode returns the Slack API error string carried by err, for example
+// "already_in_channel". It returns "" when err is not a Slack API error.
+func SlackErrorCode(err error) string {
+	var slackErrResp slack.SlackErrorResponse
+	if errors.As(err, &slackErrResp) {
+		return slackErrResp.Err
+	}
+	return ""
+}
+
 func httpStatusToGRPCCode(httpStatus int) codes.Code {
 	switch httpStatus {
 	case http.StatusBadRequest:

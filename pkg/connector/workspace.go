@@ -70,6 +70,7 @@ func workspaceResource(
 			&v2.ChildResourceType{ResourceTypeId: resourceTypeUser.Id},
 			&v2.ChildResourceType{ResourceTypeId: resourceTypeUserGroup.Id},
 			&v2.ChildResourceType{ResourceTypeId: resourceTypeWorkspaceRole.Id},
+			&v2.ChildResourceType{ResourceTypeId: resourceTypeChannel.Id},
 		),
 	)
 }

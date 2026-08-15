@@ -78,6 +78,21 @@ var (
 		),
 	}
 
+	resourceTypeChannel = &v2.ResourceType{
+		Id:          "channel",
+		DisplayName: "Channel",
+		Traits: []v2.ResourceType_Trait{
+			v2.ResourceType_TRAIT_GROUP,
+		},
+		Annotations: annotations.New(
+			capabilityPermissions(
+				// Bot Token Scopes. Private channels only, so no channels:* here.
+				"groups:read",
+				"groups:write",
+			),
+		),
+	}
+
 	resourceTypeWorkspaceRole = &v2.ResourceType{
 		Id:          "workspaceRole",
 		DisplayName: "Workspace Role",

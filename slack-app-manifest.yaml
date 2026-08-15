@@ -1,0 +1,53 @@
+# Create the app at https://api.slack.com/apps > Create New App > From a manifest.
+# The bot token it issues becomes the connector's BATON_TOKEN.
+
+_metadata:
+  major_version: 2
+  minor_version: 1
+
+display_information:
+  name: baton-slack
+  description: ConductorOne connector service account. Syncs Slack identity data and governs private channel membership.
+  long_description: >-
+    Service account for the ConductorOne baton-slack connector, which runs as an
+    ECS Fargate service in the identity AWS account. It syncs users, workspaces
+    and user groups into ConductorOne, and manages membership of private channels
+    so that channel access becomes a requestable, reviewable and revocable
+    entitlement. The app is not interactive: it sends no messages, subscribes to
+    no events, and holds an outbound-only connection.
+
+features:
+  bot_user:
+    display_name: baton-slack
+    always_online: false
+
+oauth_config:
+  # These are the scopes the code calls. resource_types.go also annotates
+  # channels:join and channels:read, which no code path uses and which would let
+  # the bot join any public channel.
+  scopes:
+    bot:
+      # A private channel is a "group" in Slack's API, so groups:write covers
+      # both conversations.invite and conversations.kick.
+      - groups:read
+      - groups:write
+      - users:read
+      - users:read.email
+      - users.profile:read
+      - team:read
+      - usergroups:read
+
+    # The Business+ resource types (IDP groups, workspace roles, user
+    # enable/disable) reach the SCIM API with a user token carrying `admin`,
+    # supplied separately as BATON_BUSINESS_PLUS_TOKEN:
+    #
+    # user:
+    #   - admin
+
+settings:
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  # Must stay false. The connector reads a static token at task start and has
+  # nowhere to persist a refreshed one, so rotation breaks every sync once the
+  # first token expires.
+  token_rotation_enabled: false

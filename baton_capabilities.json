@@ -3,6 +3,42 @@
   "resourceTypeCapabilities": [
     {
       "resourceType": {
+        "id": "channel",
+        "displayName": "Channel",
+        "traits": [
+          "TRAIT_GROUP"
+        ],
+        "annotations": [
+          {
+            "@type": "type.googleapis.com/c1.connector.v2.CapabilityPermissions",
+            "permissions": [
+              {
+                "permission": "groups:read"
+              },
+              {
+                "permission": "groups:write"
+              }
+            ]
+          }
+        ]
+      },
+      "capabilities": [
+        "CAPABILITY_SYNC",
+        "CAPABILITY_PROVISION"
+      ],
+      "permissions": {
+        "permissions": [
+          {
+            "permission": "groups:read"
+          },
+          {
+            "permission": "groups:write"
+          }
+        ]
+      }
+    },
+    {
+      "resourceType": {
         "id": "group",
         "displayName": "IDP Group",
         "traits": [
