@@ -1,17 +1,15 @@
-# TARGET_ARCH picks both the Go target and the runtime base, so the binary and
-# the base cannot disagree. The ECS task definition's runtimePlatform must name
-# the same architecture; a mismatch fails the task launch without naming
-# architecture as the cause.
-ARG TARGET_ARCH=arm64
-
 FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/golang:1.25.2 AS build
 
 WORKDIR /src
 COPY . .
 
-ARG TARGET_ARCH
+# TARGETARCH names the platform being built for. The build stage stays on the
+# builder's own platform and cross-compiles, so building several platforms at
+# once needs no emulation. A plain `docker build` takes TARGETARCH from the
+# host; pass --platform to get anything else.
+ARG TARGETARCH
 ARG VERSION=dev
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGET_ARCH} go build \
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
     -trimpath \
     -ldflags "-s -w -X main.version=${VERSION}" \
     -o /out/baton-slack \
@@ -20,7 +18,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGET_ARCH} go build \
 # distroless static rather than scratch: it carries the CA bundle. Without it
 # every call to Slack and ConductorOne fails certificate verification, which the
 # connector reports as a network error.
-FROM --platform=linux/${TARGET_ARCH} gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=build /out/baton-slack /usr/local/bin/baton-slack
 

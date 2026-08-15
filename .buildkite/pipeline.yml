@@ -8,35 +8,84 @@ steps:
       REPOSITORY="identity-baton-slack"
       REGISTRY="$${REGISTRY_ID}.dkr.ecr.$${REGION}.amazonaws.com"
       IMAGE="$${REGISTRY}/$${REPOSITORY}:${BUILDKITE_COMMIT}"
+      PLATFORMS="linux/amd64,linux/arm64"
 
-      # --pull because the runtime base tracks a rolling tag; a persistent
-      # runner would otherwise keep building on the copy it cached first.
-      docker build --pull --build-arg "VERSION=${BUILDKITE_COMMIT}" --tag "$${IMAGE}" .
-
-      if [[ "$$BUILDKITE_BRANCH" != "main" || "$$BUILDKITE_PULL_REQUEST" != "false" ]]; then
-        echo "Built without pushing: only the default branch publishes."
-        exit 0
+      ON_MAIN=false
+      if [[ "$$BUILDKITE_BRANCH" == "main" && "$$BUILDKITE_PULL_REQUEST" == "false" ]]; then
+        ON_MAIN=true
+      else
+        echo "Building without pushing: only the default branch publishes."
       fi
+
+      # A build of several platforms produces a manifest list, which the local
+      # daemon cannot hold. The result goes to the registry or nowhere, so the
+      # push decision comes before the build rather than after it.
+      PUSH="$$ON_MAIN"
 
       # The repository is IMMUTABLE, so ECR rejects a second push of a tag. A
       # rebuild of a commit that is already published is a success, not a
       # failure, so ask before pushing.
-      if aws ecr describe-images \
+      if [[ "$$PUSH" == "true" ]] && aws ecr describe-images \
         --region "$${REGION}" \
         --registry-id "$${REGISTRY_ID}" \
         --repository-name "$${REPOSITORY}" \
         --image-ids "imageTag=${BUILDKITE_COMMIT}" >/dev/null 2>&1; then
         echo "$${IMAGE} is already published."
-      else
+        PUSH=false
+      fi
+
+      OUTPUT="--output=type=cacheonly"
+      if [[ "$$PUSH" == "true" ]]; then
         # The agents run in the CI account, which mints the token. The identity
         # account's repository policy is what admits it.
         aws ecr get-login-password --region "$${REGION}" \
           | docker login --username AWS --password-stdin "$${REGISTRY}"
-        docker push "$${IMAGE}"
+        OUTPUT="--push"
       fi
 
-      echo "- baton-slack: \`$${IMAGE}\`" \
-        | buildkite-agent annotate --style "success" --context "baton-slack-image"
+      # Only the docker-container driver builds more than one platform in a
+      # single pass; the default builder does one at a time.
+      docker buildx inspect multiarch >/dev/null 2>&1 \
+        || docker buildx create --name multiarch --driver docker-container --bootstrap >/dev/null
+
+      # ECS picks a manifest by the platform descriptors in the index, never by
+      # the architecture recorded inside the image. A build that does not name
+      # its platforms describes itself as the runner's own architecture however
+      # the image was cross-compiled, and Fargate then refuses to pull it.
+      #
+      # --provenance and --sbom off: attestations join the index as further
+      # descriptors, of platform unknown/unknown, that nothing here reads.
+      #
+      # --pull because the runtime base tracks a rolling tag; a persistent
+      # runner would otherwise keep building on the copy it cached first.
+      docker buildx build --builder multiarch \
+        --pull \
+        --progress plain \
+        --platform "$${PLATFORMS}" \
+        --provenance=false \
+        --sbom=false \
+        --build-arg "VERSION=${BUILDKITE_COMMIT}" \
+        --tag "$${IMAGE}" \
+        "$${OUTPUT}" \
+        .
+
+      if [[ "$$PUSH" == "true" ]]; then
+        # The tag is immutable, so a published image that ECS cannot pull stays
+        # broken. Read the descriptors back and fail here instead.
+        MANIFEST="$(docker buildx imagetools inspect "$${IMAGE}")"
+        echo "$${MANIFEST}"
+        for PLATFORM in $${PLATFORMS//,/ }; do
+          echo "$${MANIFEST}" | tr -d ' ' | grep -q "Platform:$${PLATFORM}" || {
+            echo "published image carries no $${PLATFORM} descriptor"
+            exit 1
+          }
+        done
+      fi
+
+      if [[ "$$ON_MAIN" == "true" ]]; then
+        echo "- baton-slack: \`$${IMAGE}\` ($${PLATFORMS})" \
+          | buildkite-agent annotate --style "success" --context "baton-slack-image"
+      fi
     agents:
       queue: "aspect-small"
     timeout_in_minutes: 30
