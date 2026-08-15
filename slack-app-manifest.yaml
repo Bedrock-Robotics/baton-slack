@@ -1,0 +1,76 @@
+# Slack app manifest for the baton-slack connector.
+#
+# Create the app at https://api.slack.com/apps > Create New App > From a manifest,
+# then install it to the workspace. The bot token it issues (xoxb-...) becomes the
+# connector's BATON_TOKEN, held in Secrets Manager and injected by the ECS task.
+#
+# This app is a service account, not a chat integration. It posts no messages,
+# serves no requests, and Slack never calls it -- the connector polls outbound.
+# So there is no request_url, no event subscription, and no interactivity here.
+#
+# Scopes below are only those the connector's code actually calls. The capability
+# annotations in pkg/connector/resource_types.go also list channels:join and
+# channels:read on the workspace resource type, but no code path uses them: the
+# only conversations.* calls in the connector are in channel.go, which syncs
+# private channels. Omitting them avoids granting the bot the run of every public
+# channel. ConductorOne's UI may still show them as "required" -- that is metadata,
+# not a runtime need.
+
+_metadata:
+  major_version: 2
+  minor_version: 1
+
+display_information:
+  name: baton-slack
+  description: ConductorOne connector service account. Syncs Slack identity data and governs private channel membership.
+  long_description: >-
+    Service account for the ConductorOne baton-slack connector, which runs as an
+    ECS Fargate service in the identity AWS account. It syncs users, workspaces
+    and user groups into ConductorOne, and manages membership of private channels
+    so that channel access becomes a requestable, reviewable and revocable
+    entitlement. The app is not interactive: it sends no messages, subscribes to
+    no events, and holds an outbound-only connection.
+
+features:
+  bot_user:
+    display_name: baton-slack
+    # Presence is meaningless for a connector; leaving this false avoids showing
+    # the bot as an active participant in channels it only administers.
+    always_online: false
+
+oauth_config:
+  scopes:
+    bot:
+      # Private channels: list them, read their members, invite and remove.
+      # groups:write covers both conversations.invite and conversations.kick --
+      # in Slack's API a private channel is a "group", so the channels:* family
+      # is the wrong one here and is deliberately absent.
+      - groups:read
+      - groups:write
+      # Users. users:read.email is what lets the connector match a Slack account
+      # to a ConductorOne identity; without it every user syncs unmatched.
+      - users:read
+      - users:read.email
+      - users.profile:read
+      # Workspace and user group resource types.
+      - team:read
+      - usergroups:read
+
+    # No user scopes. The connector's Business+ resource types -- IDP groups,
+    # workspace roles, and user enable/disable -- go through the SCIM API and
+    # need a user token carrying the `admin` scope, supplied separately as
+    # BATON_BUSINESS_PLUS_TOKEN. That scope is close to full workspace admin, so
+    # it is left out until something actually needs those resource types. Add it
+    # here only alongside that decision:
+    #
+    # user:
+    #   - admin
+
+settings:
+  # Business+, not Enterprise Grid. Org-wide deployment does not apply.
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  # Must stay false. The connector reads a static token from Secrets Manager at
+  # task start and has nowhere to persist a refreshed one, so enabling rotation
+  # breaks every sync once the first token expires.
+  token_rotation_enabled: false
