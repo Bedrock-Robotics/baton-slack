@@ -81,7 +81,12 @@ func (c *channelResourceType) List(
 		Cursor:          bag.PageToken(),
 		ExcludeArchived: true,
 		Limit:           channelPageSize,
-		Types: []string{"public_channel", "private_channel"},
+		// Private channels only. With channels:read Slack returns every public
+		// channel in the workspace, member or not, which floods C1 with
+		// resources. With groups:read it returns only the private channels the
+		// bot belongs to, so bot membership is a self-maintaining allowlist: to
+		// govern a channel, invite the bot to it.
+		Types: []string{"private_channel"},
 	}
 
 	var outputAnnotations annotations.Annotations
