@@ -86,11 +86,11 @@ var (
 		},
 		Annotations: annotations.New(
 			capabilityPermissions(
-				// Bot Token Scopes
-				"channels:read",
-				"channels:join",
+				// Bot Token Scopes. The builder syncs private channels only, so
+				// the public-channel scopes (channels:read, channels:manage) are
+				// not needed here.
 				"groups:read",
-				"channels:manage",
+				"groups:write",
 			),
 		),
 	}
