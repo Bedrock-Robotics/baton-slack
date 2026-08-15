@@ -22,8 +22,22 @@ const (
 	// SlackErrNoSuchSubteam is returned when fetching user group members. Retrying
 	// on this error was determined empirically to allow syncs to complete.
 	SlackErrNoSuchSubteam = "no_such_subteam"
-	ScimVersionV2         = "v2"
-	ScimVersionV1         = "v1"
+
+	// conversations.invite and conversations.kick error strings.
+	SlackErrAlreadyInChannel = "already_in_channel"
+	SlackErrNotInChannel     = "not_in_channel"
+	SlackErrCantInviteSelf   = "cant_invite_self"
+	SlackErrChannelNotFound  = "channel_not_found"
+	SlackErrIsArchived       = "is_archived"
+	SlackErrCantKickSelf     = "cant_kick_self"
+	// SlackErrCantKickFromGeneral and SlackErrRestrictedAction are permanent.
+	// The first is a Slack product rule, the second a workspace preference that
+	// only an admin can change. Neither clears on retry.
+	SlackErrCantKickFromGeneral = "cant_kick_from_general"
+	SlackErrRestrictedAction    = "restricted_action"
+
+	ScimVersionV2 = "v2"
+	ScimVersionV1 = "v1"
 
 	teamIDKey      = "team_id"
 	scimPatchOpURN = "urn:ietf:params:scim:api:messages:2.0:PatchOp"
