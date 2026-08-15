@@ -85,9 +85,14 @@ func (c *channelResourceType) List(
 		Types:           []string{"public_channel", "private_channel"},
 	}
 
+	var outputAnnotations annotations.Annotations
 	channels, nextCursor, err := c.client.GetConversationsContext(ctx, params)
 	if err != nil {
-		return nil, nil, client.WrapError(err, fmt.Sprintf("listing channels for team %s", parentResourceID.Resource))
+		return nil, &resources.SyncOpResults{Annotations: outputAnnotations}, client.WrapError(
+			err,
+			fmt.Sprintf("listing channels for team %s", parentResourceID.Resource),
+			&outputAnnotations,
+		)
 	}
 
 	rv := make([]*v2.Resource, 0, len(channels))
@@ -104,7 +109,7 @@ func (c *channelResourceType) List(
 		return nil, nil, fmt.Errorf("creating next page token: %w", err)
 	}
 
-	return rv, &resources.SyncOpResults{NextPageToken: pageToken}, nil
+	return rv, &resources.SyncOpResults{NextPageToken: pageToken, Annotations: outputAnnotations}, nil
 }
 
 func (c *channelResourceType) Entitlements(
@@ -150,9 +155,14 @@ func (c *channelResourceType) Grants(
 		Limit:     channelPageSize,
 	}
 
+	var outputAnnotations annotations.Annotations
 	members, nextCursor, err := c.client.GetUsersInConversationContext(ctx, params)
 	if err != nil {
-		return nil, nil, client.WrapError(err, fmt.Sprintf("fetching channel members for channel %s", resource.Id.Resource))
+		return nil, &resources.SyncOpResults{Annotations: outputAnnotations}, client.WrapError(
+			err,
+			fmt.Sprintf("fetching channel members for channel %s", resource.Id.Resource),
+			&outputAnnotations,
+		)
 	}
 
 	var rv []*v2.Grant
@@ -169,7 +179,7 @@ func (c *channelResourceType) Grants(
 		return nil, nil, fmt.Errorf("creating next page token: %w", err)
 	}
 
-	return rv, &resources.SyncOpResults{NextPageToken: pageToken}, nil
+	return rv, &resources.SyncOpResults{NextPageToken: pageToken, Annotations: outputAnnotations}, nil
 }
 
 func (c *channelResourceType) Grant(
