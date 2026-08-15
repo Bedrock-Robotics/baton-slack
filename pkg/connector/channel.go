@@ -57,9 +57,8 @@ func channelResource(
 		channel.Name,
 		resourceTypeChannel,
 		channel.ID,
-		[]resources.GroupTraitOption{
-			resources.WithGroupProfile(profile),
-		},
+		[]resources.GroupTraitOption{},
+		resources.WithResourceProfile(profile),
 		resources.WithParentResourceID(parentResourceID),
 	)
 }
