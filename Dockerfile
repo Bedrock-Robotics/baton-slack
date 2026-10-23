@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/golang:1.25.2 AS build
+FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/golang:1.27.3 AS build
 
 WORKDIR /src
 COPY . .
@@ -18,7 +18,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
 # distroless static rather than scratch: it carries the CA bundle. Without it
 # every call to Slack and ConductorOne fails certificate verification, which the
 # connector reports as a network error.
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot
 
 COPY --from=build /out/baton-slack /usr/local/bin/baton-slack
 
