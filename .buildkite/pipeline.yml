@@ -87,5 +87,5 @@ steps:
           | buildkite-agent annotate --style "success" --context "baton-slack-image"
       fi
     agents:
-      queue: "aspect-small"
+      queue: "small"
     timeout_in_minutes: 30
